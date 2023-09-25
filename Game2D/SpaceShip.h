@@ -31,7 +31,7 @@ class SpaceShip
 public:
     float xOffset, yOffset;
     bool isEnemy;
-    vector<Bullet *> bullets;
+    vector<Bullet> bullets;
     enum State
     {
         ALIVE,
@@ -40,7 +40,7 @@ public:
 
     RGBApixmap pix[2];
 
-    SpaceShip(bool isenemy);
+    SpaceShip(bool isenemy, float x, float y);
 
     Rect getBoundingBox();
 
@@ -48,7 +48,7 @@ public:
 
     void setState(State s);
 
-    void render(GLuint textureId, float xOffset, float y);
+    void render(GLuint textureId);
 };
 
 Bullet::Bullet(GLuint Id, float x)
@@ -100,12 +100,20 @@ void Bullet::render()
     glDisable(GL_TEXTURE_2D);
     glutSwapBuffers();
 }
-SpaceShip::SpaceShip(bool isenemy)
+SpaceShip::SpaceShip(bool isenemy, float x, float y)
 {
     this->isEnemy = isenemy;
     this->state = ALIVE;
-    this->yOffset = -1.0;
-    this->xOffset = 0.0;
+    if (isenemy)
+    {
+        this->yOffset = x;
+        this->xOffset = y;
+    }
+    else
+    {
+        this->yOffset = -1.0;
+        this->xOffset = 0.0;
+    }
 }
 
 Rect SpaceShip::getBoundingBox()
@@ -118,58 +126,30 @@ Rect SpaceShip::getBoundingBox()
     return box;
 }
 
-void SpaceShip::render(GLuint textureId, float x, float y)
+void SpaceShip::render(GLuint textureId)
 {
-    if (this->isEnemy)
-    {
-        this->xOffset = x;
-        this->yOffset = y;
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, textureId);
 
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureId);
 
-        glTranslatef(this->xOffset, this->yOffset, 0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0);
-        glVertex3f(-0.1, 0.1, 0); // top left
-        glTexCoord2f(1.0, 0.0);
-        glVertex3f(0.1, 0.1, 0); // top right
-        glTexCoord2f(1.0, 1.0);
-        glVertex3f(0.1, 0.2, 0); // bottom right
-        glTexCoord2f(0.0, 1.0);
-        glVertex3f(-0.1, 0.2, 0); // bottom left
-        glEnd();
+    glTranslatef(this->xOffset, this->yOffset, 0);
 
-        glDisable(GL_TEXTURE_2D);
-        glutSwapBuffers();
-    }
-    else
-    {
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, textureId);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-0.1, 0.1, 0); // top left
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(0.1, 0.1, 0); // top right
+    glTexCoord2f(1.0, 1.0);
+    glVertex3f(0.1, 0.2, 0); // bottom right
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-0.1, 0.2, 0); // bottom left
+    glEnd();
 
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
-        glTranslatef(this->xOffset, this->yOffset, 0);
-
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0);
-        glVertex3f(-0.1, 0.1, 0); // top left
-        glTexCoord2f(1.0, 0.0);
-        glVertex3f(0.1, 0.1, 0); // top right
-        glTexCoord2f(1.0, 1.0);
-        glVertex3f(0.1, 0.2, 0); // bottom right
-        glTexCoord2f(0.0, 1.0);
-        glVertex3f(-0.1, 0.2, 0); // bottom left
-        glEnd();
-
-        glDisable(GL_TEXTURE_2D);
-        glutSwapBuffers();
-    }
+    glDisable(GL_TEXTURE_2D);
+    glutSwapBuffers();
 }
 
 void SpaceShip::changePosition(float dx)

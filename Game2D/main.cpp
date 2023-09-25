@@ -7,7 +7,7 @@
 int screenWidth = 840;
 int screenHeight = 680;
 
-SpaceShip ship(false);
+SpaceShip ship(false,0.0,0.0);
 vector<SpaceShip> Enemies;
 
 GLuint LoadImage(char *path)
@@ -64,11 +64,11 @@ void renderBackGround()
 
 bool checkCollision(Rect rect1, Rect rect2)
 {
-    printf("rect1.width=>%f rect1.x=>%f rect1.y=>%f rect1.height=>%f\n", rect1.width, rect1.x, rect1.y, rect1.height);
-    // cout<<endl;
-    printf("rect2.width=>%f rect2.x=>%f rect2.y=>%f rect2.height=>%f\n", rect2.width, rect2.x, rect2.y, rect2.height);
-    // cout<<endl;
-    bool collision = rect2.width + rect2.x <= rect1.x && rect2.width - rect2.x >= rect1.x && rect2.height - rect2.y >= rect1.y && rect2.height + rect2.y <= rect1.y;
+    // printf("rect1.x=>%f rect1.y=>%f\n", rect1.x, rect1.y);
+    // printf("rect2width + rect2x=>%f rect2x=> - rect2width=>%f ||| rect2height + rect2y=>%f rect2y - rect2height=>%f\n", rect2.width + rect2.x, rect2.y - rect2.height, rect2.height + rect2.y, rect2.y - rect2.height);
+
+
+    bool collision = rect2.width + rect2.x >= rect1.x && rect2.x - rect2.width <= rect1.x && rect2.y - rect2.height <= rect1.y;
     return (collision);
 }
 
@@ -76,49 +76,49 @@ void bullet_movement(int y)
 {
     if (!ship.bullets.empty())
     {
-        for (int i = 0; i < ship.bullets.size(); i++)
+        int i = 0;
+        // cout << "No of bullets::::::::::::::::::" << ship.bullets.size() << endl;
+        for (Bullet &bullet : ship.bullets)
         {
-            if (ship.bullets[i])
+
+            Rect bulletBox = bullet.getBoundingBox();
+            if (bullet.isMoving)
             {
-                Bullet *bullet = ship.bullets[i];
-                Rect bulletBox = bullet->getBoundingBox();
-                if (bullet->isMoving)
+                bullet.ChangePosition(bullet.yOffset + 0.01);
+
+                if (bullet.yOffset > 1.0)
                 {
-                    bullet->ChangePosition(bullet->yOffset + 0.01);
 
-                    if (bullet->yOffset > 1.0)
+                    // cout << "out" << endl;
+                    bullet.isMoving = false;
+                    glDeleteTextures(1, &bullet.textureId);
+                    ship.bullets.erase(ship.bullets.begin() + i);
+                }
+                else
+                {
+                    int j = 0;
+                    for (SpaceShip &enemy : Enemies)
                     {
-
-                        // cout << "out" << endl;
-                        bullet->isMoving = false;
-                        glDeleteTextures(1, &bullet->textureId);
-                        delete bullet;
-                        ship.bullets.erase(ship.bullets.begin() + i);
-                    }
-                    else
-                    {
-                        int j = 0;
-                        for (SpaceShip enemy : Enemies)
+                        // Use 'element' inside the loop
+                        Rect enemyBox = enemy.getBoundingBox();
+                        // cout << "ENEMY CHANGEd......." << j << endl;
+                        if (checkCollision(bulletBox, enemyBox))
                         {
-                            // Use 'element' inside the loop
-                            Rect enemyBox = enemy.getBoundingBox();
-                            cout << "ENEMY CHANGEd......." << j << endl;
-                            if (checkCollision(bulletBox, enemyBox))
-                            {
-                                cout << "COLLISION" << endl;
-                                // Collision detected, do something (e.g., remove bullet and enemy)
-                                bullet->isMoving = false;
-                                ship.bullets.erase(ship.bullets.begin() + i);
-                                delete bullet;
-                                enemy.state = SpaceShip::DEAD;
-                                break;
-                                // Handle enemy destruction...
-                            }
-                            j++;
+                            cout << "COLLISION" << endl;
+                            // Collision detected, do something (e.g., remove bullet and enemy)
+                            bullet.isMoving = false;
+                            ship.bullets.erase(ship.bullets.begin() + i);
+                            // delete bullet;
+
+                            enemy.state = SpaceShip::DEAD;
+                            break;
+                            // Handle enemy destruction...
                         }
+                        j++;
                     }
                 }
             }
+            i++;
         }
         // glutPostRedisplay();
         glutTimerFunc(100, bullet_movement, 0);
@@ -149,12 +149,12 @@ void pressKeySpecial(int key, int x, int y)
     case GLUT_KEY_UP:
         if (ship.state == SpaceShip::ALIVE)
         {
-            for (int i = 0; i <= 5; i++)
-            {
-                GLuint textureId = LoadImage("./PNG/Lasers/laserBlue01.png");
-                Bullet *b = new Bullet(textureId, ship.xOffset);
-                ship.bullets.push_back(b);
-            }
+            // for (int i = 0; i <= 5; i++)
+            // {
+            GLuint textureId = LoadImage("./PNG/Lasers/laserBlue01.png");
+            Bullet b(textureId, ship.xOffset);
+            ship.bullets.push_back(b);
+            // }
             // glutPostRedisplay();
             // glutTimerFunc(10, bullet_movement, 0);
         }
@@ -174,10 +174,18 @@ void timer(int)
 
 void Round(int number)
 {
-    cout<<"item created"<<endl;
+    cout << "item created" << endl;
+    float xvertex = -0.7;
+    float yvertex = 0.7;
     for (int i = 0; i < number; i++)
     {
-        SpaceShip enemy(true);
+        float xvertex = xvertex + 0.3;
+        if (i % 4 == 0)
+        {
+            xvertex = -0.7;
+            yvertex -= 0.4;
+        }
+        SpaceShip enemy(true,xvertex,yvertex);
         Enemies.push_back(enemy);
     }
 }
@@ -190,48 +198,43 @@ void myDisplay(void)
     GLuint shipId = LoadImage("./PNG/playerShip1_blue.png");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // renderBackGround();
-    float yvertex = 0.7;
-    float xvertex = -0.7;
     int i = 0;
-    for (SpaceShip enemy : Enemies)
+    int to_remove = -1;
+    for (SpaceShip &enemy : Enemies)
     {
-        float xvertex = xvertex + 0.3;
-        if (i % 4 == 0)
-        {
-            xvertex = -0.7;
-            yvertex -= 0.4;
-        }
+
         if (enemy.state == SpaceShip::ALIVE)
         {
-
-            enemy.render(enemyId, xvertex, yvertex);
+            enemy.render(enemyId);
         }
         else
         {
-            enemy.render(fireId, xvertex, yvertex);
+            enemy.render(fireId);
+            to_remove = i;
         }
         i++;
     }
-
+    if (to_remove != -1)
+    {
+        Enemies.erase(Enemies.begin() + to_remove);
+    }
     if (ship.state == SpaceShip::ALIVE)
     {
-        ship.render(shipId, 0.0, 0.0);
+        ship.render(shipId);
     }
     else
     {
-        ship.render(fireId, 0.0, 0.0);
+        ship.render(fireId);
     }
     if (!ship.bullets.empty())
     {
         bullet_movement(0);
 
-        for (int i = 0; i < ship.bullets.size(); i++)
+        for (Bullet &bullet : ship.bullets)
         {
-
-            Bullet *bullet = ship.bullets[i];
-            if (bullet->isMoving)
+            if (bullet.isMoving)
             {
-                bullet->render();
+                bullet.render();
             }
         }
     }
