@@ -8,6 +8,12 @@
 
 using namespace std;
 
+struct Rect
+{
+    float x, y;
+    float width, height;
+};
+
 class Bullet
 {
 public:
@@ -15,6 +21,7 @@ public:
     bool isMoving;
     GLuint textureId;
     Bullet(GLuint textureId, float x);
+    Rect getBoundingBox();
     void ChangePosition(float dy);
     void render();
 };
@@ -35,11 +42,13 @@ public:
 
     SpaceShip(bool isenemy);
 
+    Rect getBoundingBox();
+
     void changePosition(float dx);
 
     void setState(State s);
 
-    void render(GLuint textureId, float xOffset,float y);
+    void render(GLuint textureId, float xOffset, float y);
 };
 
 Bullet::Bullet(GLuint Id, float x)
@@ -52,10 +61,21 @@ Bullet::Bullet(GLuint Id, float x)
 
 void Bullet::ChangePosition(float dy)
 {
-    cout << "called";
+    // cout << "called";
     this->yOffset = dy;
     // glutPostRedisplay();
 }
+
+Rect Bullet::getBoundingBox()
+{
+    Rect box;
+    box.x = this->xOffset; // Adjust these values based on the size of your bullet
+    box.y = this->yOffset;
+    box.width = 0.02;
+    box.height = 0.07;
+    return box;
+}
+
 void Bullet::render()
 {
     glEnable(GL_TEXTURE_2D);
@@ -88,12 +108,22 @@ SpaceShip::SpaceShip(bool isenemy)
     this->xOffset = 0.0;
 }
 
-void SpaceShip::render(GLuint textureId, float x,float y)
+Rect SpaceShip::getBoundingBox()
+{
+    Rect box;
+    box.x = this->xOffset; // Adjust these values based on the size of your bullet
+    box.y = this->yOffset;
+    box.width = 0.2;
+    box.height = 0.1;
+    return box;
+}
+
+void SpaceShip::render(GLuint textureId, float x, float y)
 {
     if (this->isEnemy)
     {
-        this->xOffset=x;
-        this->yOffset=y;
+        this->xOffset = x;
+        this->yOffset = y;
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, textureId);
 
